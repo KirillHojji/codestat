@@ -41,13 +41,13 @@ Dependencies: Python 3.6+
 ### Quick install (Linux / macOS / Termux)
 
 ```bash
-wget https://raw.githubusercontent.com/KirillHojji/codestat/master/codestat -O ~/.local/bin/codestat && chmod +x ~/.local/bin/codestat
+wget https://raw.githubusercontent.com/KirillHojji/codestat/refs/heads/master/codestat -O ~/.local/bin/codestat && chmod +x ~/.local/bin/codestat
 ```
 
 Or if you have root/sudo:
 
 ```bash
-sudo wget https://raw.githubusercontent.com/KirillHojji/codestat/master/codestat -O /usr/local/bin/codestat && sudo chmod +x /usr/local/bin/codestat
+sudo wget https://raw.githubusercontent.com/KirillHojji/codestat/refs/heads/master/codestat -O /usr/local/bin/codestat && sudo chmod +x /usr/local/bin/codestat
 ```
 
 Manual download
