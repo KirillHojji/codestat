@@ -78,7 +78,9 @@ Option Description
 
 ## Examples
 
-### Basic usage
+### ⌨️ Command examples
+
+Basic usage
 
 ```bash
 codestat /path/
