@@ -68,13 +68,14 @@ codestat [OPTIONS] <directory>
 
 ## Options
 
-Option Description
---help Show this help message
---version Show version information
---info Show author, license, and package info
---timeout N Set timeout in seconds for each file (default: 0 = no timeout)
---exclude DIR Exclude a directory (can be used multiple times)
---verbose Show detailed processing information
+| Option | Description |
+|--------|-------------|
+| `--help` | Show this help message |
+| `--version` | Show version information |
+| `--info` | Show author, license, and package info |
+| `--timeout N` | Set timeout in seconds for each file (default: 0 = no timeout) |
+| `--exclude DIR` | Exclude a directory (can be used multiple times) |
+| `--verbose` | Show detailed processing information |
 
 ## Examples
 
