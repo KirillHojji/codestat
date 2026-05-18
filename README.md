@@ -102,8 +102,8 @@ codestat --timeout 5 --verbose ~/large-project
 ### 📊 Output Example
 
 ```
-     150 text files.
-Unique:      150 files                                     0 unique files.
+     126 text files.
+Unique:      126 files                                     0 unique files.
       0 files ignored.
 
 ------------------------------------------------------------------------------------------
