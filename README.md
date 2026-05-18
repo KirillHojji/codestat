@@ -81,13 +81,13 @@ Examples
 Basic usage
 
 ```bash
-codestat /opt/Funtys
+codestat /path/
 ```
 
 Exclude common folders
 
 ```bash
-codestat --exclude node_modules --exclude .git --exclude dist ./my-project
+codestat --exclude file ./my-project
 ```
 
 Set timeout for huge files
@@ -99,19 +99,21 @@ codestat --timeout 5 --verbose ~/large-project
 📊 Output Example
 
 ```
-     134 text files.
-Unique:      134 files                                     11 unique files.
+     150 text files.
+Unique:      150 files                                     0 unique files.
       0 files ignored.
 
 ------------------------------------------------------------------------------------------
 Language                Files      Total       Code    Comment      Blank
 ------------------------------------------------------------------------------------------
-TypeScript                113      32819      30293        645       1881
-Python                      2       8582       7528         71        983
-YAML                        2       7251       5827          1       1423
-JSON                       10       1096       1087          7          2
+TypeScript                112      32000      29500        600       1900
+Python                      2       8500       7500         70        930
+YAML                        2       7200       5800          1       1399
+JSON                        8       1000        990          5          5
+CSS                         1        500        400         50         50
+HTML                        1        100         80          5         15
 ------------------------------------------------------------------------------------------
-SUM                       134      51678      45972       1144       4562
+SUM                       126      49300      44270        731       4299
 ```
 
 🤝 Contributing
