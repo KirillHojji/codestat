@@ -50,7 +50,7 @@ Or if you have root/sudo:
 sudo wget https://raw.githubusercontent.com/KirillHojji/codestat/refs/heads/master/codestat -O /usr/local/bin/codestat && sudo chmod +x /usr/local/bin/codestat
 ```
 
-Manual download
+## Manual download
 
 Just download the script and make it executable:
 
@@ -60,13 +60,13 @@ chmod +x codestat
 ./codestat /path/to/project
 ```
 
-🛠 Usage
+## 🛠 Usage
 
 ```
 codestat [OPTIONS] <directory>
 ```
 
-Options
+## Options
 
 Option Description
 --help Show this help message
@@ -76,9 +76,9 @@ Option Description
 --exclude DIR Exclude a directory (can be used multiple times)
 --verbose Show detailed processing information
 
-Examples
+## Examples
 
-Basic usage
+### Basic usage
 
 ```bash
 codestat /path/
@@ -96,7 +96,7 @@ Set timeout for huge files
 codestat --timeout 5 --verbose ~/large-project
 ```
 
-📊 Output Example
+### 📊 Output Example
 
 ```
      150 text files.
@@ -116,7 +116,7 @@ HTML                        1        100         80          5         15
 SUM                       126      49300      44270        731       4299
 ```
 
-🤝 Contributing
+## 🤝 Contributing
 
 Found a bug or want to add a new language?
 
@@ -126,7 +126,7 @@ Found a bug or want to add a new language?
 4. Push to the branch (git push origin feature/amazing-feature)
 5. Open a Pull Request
 
-📜 License
+## 📜 License
 
 Distributed under the MIT License. See the [LICENSE](https://github.com/KirillHojji/codestat/blob/master/LICENSE) file for more information.
 
