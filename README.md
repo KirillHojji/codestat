@@ -5,7 +5,7 @@
 **Simple, fast source code line counter**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-0.3-brightgreen.svg)](#)
+[![Version](https://img.shields.io/badge/version-0.4-brightgreen.svg)](#)
 [![Python 3.6+](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/)
 
 `codestat` is a command-line tool to count lines of code in your projects.  
@@ -20,7 +20,7 @@ It filters comments, blank lines, and supports many languages out of the box.
 ```
 
 Package: codestat
-Version: 0.3
+Version: 0.4
 Author: KirillHojji
 License: MIT
 Repository: https://github.com/KirillHojji/codestat
@@ -30,11 +30,12 @@ Dependencies: Python 3.6+
 
 ## ✨ Features
 
-- **Multi-language support** – TypeScript, Python, JavaScript, YAML, JSON, CSS, HTML, and more
+- **Multi-language support** – 35+ languages including TypeScript, Python, JavaScript, Go, Rust, Java, PHP, Shell, and more
 - **Comment & blank line filtering** – Shows real code size, not just total lines
 - **Docstring handling** – Properly counts Python docstrings as comments, not code
 - **Timeout protection** – Skips files that take too long (no more stuck counters)
 - **Exclude directories** – Ignore `node_modules`, `.git`, `__pycache__`, and custom folders
+- **Column sorting** – Sort results by files, total lines, code, comments, or blank lines
 
 ## 🚀 Installation
 
@@ -76,6 +77,7 @@ codestat [OPTIONS] <directory>
 | `--timeout N` | Set timeout in seconds for each file (default: 0 = no timeout) |
 | `--exclude DIR` | Exclude a directory (can be used multiple times) |
 | `--verbose` | Show detailed processing information |
+| `--sort COLUMN` | Sort by column: files, total, code, comment, blank (default: language) |
 
 ## Examples
 
