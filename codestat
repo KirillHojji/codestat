@@ -8,7 +8,7 @@ from collections import defaultdict
 
 VERSION = "0.4"
 AUTHOR = "KirillHojji"
-DESCRIPTION = "codestat - source code line counter for projects"
+DESCRIPTION = "codestat - source code line counter for projects and files"
 
 EXTENSIONS = {
     '.ts': 'TypeScript',
@@ -76,22 +76,26 @@ def timeout_handler(signum, frame):
 
 def show_help():
     print(f"""{DESCRIPTION}
-Usage: codestat [OPTIONS] <directory>
+Usage: codestat [OPTIONS] <path>
+
+Path can be a directory or a single file.
 
 Options:
   --help            Show this help message
   --version         Show version information
   --info            Show author and package information
   --timeout N       Set timeout in seconds for each file (default: 0 = no timeout)
-  --exclude DIR     Exclude directory (can be used multiple times)
+  --exclude DIR     Exclude directory (can be used multiple times, ignored for single file)
   --verbose         Show detailed processing information
-  --sort COLUMN     Sort by column: files, total, code, comment, blank (default: language)
+  --sort COLUMN     Sort by column: files, total, code, comment, blank (for directories only)
 
 Examples:
   codestat /path/to/project
+  codestat /path/to/file.py
   codestat --exclude node_modules --exclude .git /opt/Funtys
   codestat --timeout 5 --verbose ./src
   codestat --sort code ./src
+  codestat /path/to/script.js --verbose
 
 Default excluded directories:
   node_modules, .git, __pycache__, dist, build, .venv, venv, env, .idea, .vscode
@@ -108,6 +112,7 @@ Repository: https://github.com/KirillHojji/codestat
 Dependencies: Python 3.6+
 Features:
   - Multi-language support (35+ languages)
+  - Single file analysis with detailed output
   - Comment and blank line filtering
   - Enhanced comment parsing (block, line, docstrings)
   - Timeout protection for large files
@@ -268,6 +273,53 @@ def count_file_lines(path, timeout_seconds=0):
     code = total - blank - comment
     return (total, code, comment, blank)
 
+def analyze_single_file(file_path, timeout=0, verbose=False):
+    if verbose:
+        print(f"Analyzing: {file_path}", file=sys.stderr)
+    
+    ext = file_path.suffix.lower()
+    if ext not in EXTENSIONS:
+        print(f"Error: Unsupported file type: {ext}")
+        print("Supported extensions: " + ', '.join(sorted(EXTENSIONS.keys())))
+        sys.exit(1)
+    
+    language = EXTENSIONS[ext]
+    
+    try:
+        total, code, comment, blank = count_file_lines(file_path, timeout)
+    except TimeoutError:
+        print(f"Error: Timeout ({timeout}s) exceeded while processing {file_path}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error processing {file_path}: {str(e)}")
+        sys.exit(1)
+    
+    if total == 0:
+        print("Error: File is empty or could not be read")
+        sys.exit(1)
+    
+    code_percent = (code / total) * 100
+    comment_percent = (comment / total) * 100
+    blank_percent = (blank / total) * 100
+    
+    print("\n" + "=" * 60)
+    print(f"FILE ANALYSIS: {file_path.name}")
+    print("=" * 60)
+    print(f"Full path:     {file_path.absolute()}")
+    print(f"Language:      {language}")
+    print(f"Extension:     {ext}")
+    print("-" * 60)
+    print(f"Total lines:   {total}")
+    print(f"Code lines:    {code} ({code_percent:.1f}%)")
+    print(f"Comment lines: {comment} ({comment_percent:.1f}%)")
+    print(f"Blank lines:   {blank} ({blank_percent:.1f}%)")
+    print("-" * 60)
+    
+    if verbose:
+        print("\nDetailed parsing information was enabled with --verbose")
+    
+    print("=" * 60 + "\n")
+
 def scan_directory(root_path, timeout=0, verbose=False, exclude_dirs=None, sort_by=None):
     if exclude_dirs is None:
         exclude_dirs = []
@@ -359,7 +411,7 @@ def scan_directory(root_path, timeout=0, verbose=False, exclude_dirs=None, sort_
 
 if __name__ == '__main__':
     args = sys.argv[1:]
-    directory = None
+    path = None
     timeout = 0
     verbose = False
     exclude_dirs = []
@@ -404,17 +456,27 @@ if __name__ == '__main__':
             print("Use --help for usage information")
             sys.exit(1)
         else:
-            directory = arg
+            path = arg
         i += 1
 
-    if not directory:
-        print("Error: No directory specified")
+    if not path:
+        print("Error: No path specified")
         print("Use --help for usage information")
         sys.exit(1)
 
-    root_path = Path(directory)
-    if not root_path.exists():
-        print(f"Error: Directory {root_path} does not exist")
+    path_obj = Path(path)
+    if not path_obj.exists():
+        print(f"Error: Path {path_obj} does not exist")
         sys.exit(1)
 
-    scan_directory(root_path, timeout, verbose, exclude_dirs, sort_by)
+    if path_obj.is_file():
+        if exclude_dirs:
+            print("Warning: --exclude option is ignored for single file analysis")
+        if sort_by:
+            print("Warning: --sort option is ignored for single file analysis")
+        analyze_single_file(path_obj, timeout, verbose)
+    elif path_obj.is_dir():
+        scan_directory(path_obj, timeout, verbose, exclude_dirs, sort_by)
+    else:
+        print(f"Error: {path_obj} is neither a file nor a directory")
+        sys.exit(1)
