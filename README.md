@@ -36,6 +36,7 @@ Dependencies: Python 3.6+
 - **Timeout protection** – Skips files that take too long (no more stuck counters)
 - **Exclude directories** – Ignore `node_modules`, `.git`, `__pycache__`, and custom folders
 - **Column sorting** – Sort results by files, total lines, code, comments, or blank lines
+- **Single file analysis** – Detailed statistics for individual source files
 
 ## 🚀 Installation
 
@@ -63,9 +64,10 @@ chmod +x codestat
 
 ## 🛠 Usage
 
+```bash
+codestat [OPTIONS] <path>
 ```
-codestat [OPTIONS] <directory>
-```
+*Path can be a directory or a single file.*
 
 ## Options
 
