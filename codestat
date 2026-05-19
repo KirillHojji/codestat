@@ -6,7 +6,7 @@ import signal
 from pathlib import Path
 from collections import defaultdict
 
-VERSION = "0.3"
+VERSION = "0.4"
 AUTHOR = "KirillHojji"
 DESCRIPTION = "codestat - source code line counter for projects"
 
@@ -37,6 +37,29 @@ EXTENSIONS = {
     '.swift': 'Swift',
     '.kt': 'Kotlin',
     '.sql': 'SQL',
+    '.sh': 'Shell',
+    '.bash': 'Shell',
+    '.zsh': 'Shell',
+    '.fish': 'Shell',
+    '.pl': 'Perl',
+    '.pm': 'Perl',
+    '.lua': 'Lua',
+    '.r': 'R',
+    '.scala': 'Scala',
+    '.groovy': 'Groovy',
+    '.vue': 'Vue',
+    '.svelte': 'Svelte',
+    '.dart': 'Dart',
+    '.erl': 'Erlang',
+    '.ex': 'Elixir',
+    '.exs': 'Elixir',
+    '.clj': 'Clojure',
+    '.cljs': 'Clojure',
+    '.fs': 'F#',
+    '.fsx': 'F#',
+    '.nim': 'Nim',
+    '.cr': 'Crystal',
+    '.zig': 'Zig',
 }
 
 DEFAULT_EXCLUDE = {
@@ -62,11 +85,13 @@ Options:
   --timeout N       Set timeout in seconds for each file (default: 0 = no timeout)
   --exclude DIR     Exclude directory (can be used multiple times)
   --verbose         Show detailed processing information
+  --sort COLUMN     Sort by column: files, total, code, comment, blank (default: language)
 
 Examples:
   codestat /path/to/project
   codestat --exclude node_modules --exclude .git /opt/Funtys
   codestat --timeout 5 --verbose ./src
+  codestat --sort code ./src
 
 Default excluded directories:
   node_modules, .git, __pycache__, dist, build, .venv, venv, env, .idea, .vscode
@@ -82,11 +107,12 @@ License: MIT
 Repository: https://github.com/KirillHojji/codestat
 Dependencies: Python 3.6+
 Features:
-  - Multi-language support
+  - Multi-language support (35+ languages)
   - Comment and blank line filtering
-  - Docstring handling for Python
+  - Enhanced comment parsing (block, line, docstrings)
   - Timeout protection for large files
-  - Exclude directories""")
+  - Exclude directories
+  - Column sorting""")
 
 def is_excluded(path, exclude_dirs):
     parts = path.parts
@@ -95,69 +121,134 @@ def is_excluded(path, exclude_dirs):
             return True
     return False
 
+def is_single_line_comment(line, lang):
+    line_stripped = line.lstrip()
+    if not line_stripped:
+        return False
+    
+    if lang == 'Python':
+        return line_stripped.startswith('#')
+    elif lang in ['JavaScript', 'TypeScript', 'Java', 'C', 'C++', 'Go', 'Rust', 'PHP', 'C#', 'Swift', 'Kotlin', 'Scala', 'Groovy', 'Dart']:
+        return line_stripped.startswith('//')
+    elif lang in ['CSS', 'SQL']:
+        return line_stripped.startswith('--')
+    elif lang == 'Ruby':
+        return line_stripped.startswith('#')
+    elif lang == 'Shell':
+        return line_stripped.startswith('#')
+    elif lang == 'Perl':
+        return line_stripped.startswith('#')
+    elif lang == 'Lua':
+        return line_stripped.startswith('--')
+    elif lang == 'Elixir':
+        return line_stripped.startswith('#')
+    elif lang == 'Clojure':
+        return line_stripped.startswith(';')
+    elif lang == 'Haskell':
+        return line_stripped.startswith('--')
+    elif lang == 'R':
+        return line_stripped.startswith('#')
+    
+    return False
+
 def count_file_lines(path, timeout_seconds=0):
     if timeout_seconds > 0:
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(timeout_seconds)
-    
+
     try:
         with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-            lines = f.readlines()
+            content = f.read()
+            lines = content.splitlines(keepends=True)
     except (UnicodeDecodeError, OSError):
         return (0, 0, 0, 0)
     finally:
         if timeout_seconds > 0:
             signal.alarm(0)
-    
+
     total = len(lines)
     blank = 0
     comment = 0
-    in_block_comment = False
-    in_string = False
-    string_char = None
+    in_multiline_comment = False
+    in_docstring = False
+    docstring_delimiter = None
     is_py = path.suffix.lower() == '.py'
+    lang = EXTENSIONS.get(path.suffix.lower(), 'Unknown')
     
     i = 0
     while i < total:
-        raw_line = lines[i]
-        line = raw_line.strip()
+        line = lines[i]
+        line_stripped = line.strip()
         
-        if not line:
+        if not line_stripped:
             blank += 1
             i += 1
             continue
         
-        if in_block_comment:
+        if in_multiline_comment:
             comment += 1
-            if '*/' in raw_line:
-                in_block_comment = False
+            if '*/' in line:
+                in_multiline_comment = False
             i += 1
             continue
         
-        line_comment = False
+        if in_docstring:
+            comment += 1
+            if docstring_delimiter in line:
+                in_docstring = False
+                docstring_delimiter = None
+            i += 1
+            continue
+        
         j = 0
-        length = len(raw_line)
+        line_comment = False
+        in_string = False
+        string_char = None
+        length = len(line)
+        
         while j < length:
-            char = raw_line[j]
-            next_char = raw_line[j+1] if j + 1 < length else ''
+            char = line[j]
+            next_char = line[j+1] if j+1 < length else ''
+            next_next_char = line[j+2] if j+2 < length else ''
             
             if not in_string:
-                if char == '"' and (j == 0 or raw_line[j-1] != '\\'):
+                if char == '"' and (j == 0 or line[j-1] != '\\'):
+                    if is_py and next_char == '"' and next_next_char == '"':
+                        in_docstring = True
+                        docstring_delimiter = '"""'
+                        comment += 1
+                        j += 3
+                        break
                     in_string = True
                     string_char = '"'
-                elif char == "'" and (j == 0 or raw_line[j-1] != '\\'):
+                elif char == "'" and (j == 0 or line[j-1] != '\\'):
+                    if is_py and next_char == "'" and next_next_char == "'":
+                        in_docstring = True
+                        docstring_delimiter = "'''"
+                        comment += 1
+                        j += 3
+                        break
                     in_string = True
                     string_char = "'"
-                elif char == '#' and not in_string:
-                    line_comment = True
-                    break
                 elif char == '/' and next_char == '*':
-                    in_block_comment = True
+                    in_multiline_comment = True
                     comment += 1
                     j += 2
-                    continue
+                    break
+                elif char == '/' and next_char == '/':
+                    line_comment = True
+                    break
+                elif char == '#':
+                    line_comment = True
+                    break
+                elif char == '-' and next_char == '-':
+                    line_comment = True
+                    break
+                elif char == ';':
+                    line_comment = True
+                    break
             else:
-                if char == string_char and (j == 0 or raw_line[j-1] != '\\'):
+                if char == string_char and (j == 0 or line[j-1] != '\\'):
                     in_string = False
             j += 1
         
@@ -166,9 +257,8 @@ def count_file_lines(path, timeout_seconds=0):
             i += 1
             continue
         
-        if is_py and not in_string:
-            stripped = raw_line.lstrip()
-            if stripped.startswith('"""') or stripped.startswith("'''"):
+        if not in_multiline_comment and not in_docstring:
+            if is_single_line_comment(line, lang):
                 comment += 1
                 i += 1
                 continue
@@ -178,16 +268,16 @@ def count_file_lines(path, timeout_seconds=0):
     code = total - blank - comment
     return (total, code, comment, blank)
 
-def scan_directory(root_path, timeout=0, verbose=False, exclude_dirs=None):
+def scan_directory(root_path, timeout=0, verbose=False, exclude_dirs=None, sort_by=None):
     if exclude_dirs is None:
         exclude_dirs = []
-    
+
     all_exclude = DEFAULT_EXCLUDE | set(exclude_dirs)
-    
+
     stats = defaultdict(lambda: {'files': 0, 'total': 0, 'code': 0, 'comment': 0, 'blank': 0})
     errors = []
     all_files = []
-    
+
     for file_path in root_path.rglob('*'):
         if file_path.is_file():
             if is_excluded(file_path, all_exclude):
@@ -195,46 +285,46 @@ def scan_directory(root_path, timeout=0, verbose=False, exclude_dirs=None):
             ext = file_path.suffix.lower()
             if ext in EXTENSIONS:
                 all_files.append(file_path)
-    
+
     all_files.sort()
-    
+
     print(f"     {len(all_files)} text files.")
-    
+
     ext_counts = defaultdict(int)
     for file_path in all_files:
         ext_counts[file_path.suffix.lower()] += 1
-    
+
     unique_count = len(ext_counts)
     print(f"Unique:      {len(all_files)} files                                     {unique_count} unique files.")
     print(f"      0 files ignored.\n")
-    
+
     for idx, file_path in enumerate(all_files):
         if verbose and idx % 100 == 0:
             print(f"Processing: {idx}/{len(all_files)} files...", file=sys.stderr)
-        
+
         ext = file_path.suffix.lower()
         lang = EXTENSIONS[ext]
-        
+
         try:
             total, code, comment, blank = count_file_lines(file_path, timeout)
             if total == 0:
                 errors.append(f"Line count failed: {file_path}")
                 continue
-            
+
             stats[lang]['files'] += 1
             stats[lang]['total'] += total
             stats[lang]['code'] += code
             stats[lang]['comment'] += comment
             stats[lang]['blank'] += blank
-            
+
         except TimeoutError:
             errors.append(f"Timeout ({timeout}s): {file_path}")
         except Exception as e:
             errors.append(f"Error processing {file_path}: {str(e)}")
-    
+
     if verbose:
         print("Done processing files.\n", file=sys.stderr)
-    
+
     if errors:
         print(f"{len(errors)} errors:")
         for error in errors[:10]:
@@ -242,15 +332,20 @@ def scan_directory(root_path, timeout=0, verbose=False, exclude_dirs=None):
         if len(errors) > 10:
             print(f"... and {len(errors) - 10} more errors")
         print()
-    
+
+    items = list(stats.items())
+    if sort_by and sort_by in ['files', 'total', 'code', 'comment', 'blank']:
+        items.sort(key=lambda x: x[1][sort_by], reverse=True)
+    else:
+        items.sort(key=lambda x: x[0])
+
     print("-" * 90)
     print(f"{'Language':<20} {'Files':>8} {'Total':>10} {'Code':>10} {'Comment':>10} {'Blank':>10}")
     print("-" * 90)
-    
+
     total_stats = {'files': 0, 'total': 0, 'code': 0, 'comment': 0, 'blank': 0}
-    
-    for lang in sorted(stats.keys()):
-        data = stats[lang]
+
+    for lang, data in items:
         if data['files'] > 0:
             print(f"{lang:<20} {data['files']:>8} {data['total']:>10} {data['code']:>10} {data['comment']:>10} {data['blank']:>10}")
             total_stats['files'] += data['files']
@@ -258,7 +353,7 @@ def scan_directory(root_path, timeout=0, verbose=False, exclude_dirs=None):
             total_stats['code'] += data['code']
             total_stats['comment'] += data['comment']
             total_stats['blank'] += data['blank']
-    
+
     print("-" * 90)
     print(f"{'SUM':<20} {total_stats['files']:>8} {total_stats['total']:>10} {total_stats['code']:>10} {total_stats['comment']:>10} {total_stats['blank']:>10}")
 
@@ -268,11 +363,12 @@ if __name__ == '__main__':
     timeout = 0
     verbose = False
     exclude_dirs = []
-    
+    sort_by = None
+
     if not args:
         show_help()
         sys.exit(0)
-    
+
     i = 0
     while i < len(args):
         arg = args[i]
@@ -297,6 +393,12 @@ if __name__ == '__main__':
             i += 1
         elif arg == '--verbose':
             verbose = True
+        elif arg == '--sort' and i + 1 < len(args):
+            sort_by = args[i + 1]
+            if sort_by not in ['files', 'total', 'code', 'comment', 'blank']:
+                print(f"Error: --sort must be one of: files, total, code, comment, blank")
+                sys.exit(1)
+            i += 1
         elif arg.startswith('-'):
             print(f"Unknown option: {arg}")
             print("Use --help for usage information")
@@ -304,15 +406,15 @@ if __name__ == '__main__':
         else:
             directory = arg
         i += 1
-    
+
     if not directory:
         print("Error: No directory specified")
         print("Use --help for usage information")
         sys.exit(1)
-    
+
     root_path = Path(directory)
     if not root_path.exists():
         print(f"Error: Directory {root_path} does not exist")
         sys.exit(1)
-    
-    scan_directory(root_path, timeout, verbose, exclude_dirs)
+
+    scan_directory(root_path, timeout, verbose, exclude_dirs, sort_by)
