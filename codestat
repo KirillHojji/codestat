@@ -163,8 +163,7 @@ def count_file_lines(path, timeout_seconds=0):
 
     try:
         with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-            content = f.read()
-            lines = content.splitlines(keepends=True)
+            lines = f.readlines()
     except (UnicodeDecodeError, OSError):
         return (0, 0, 0, 0)
     finally:
@@ -175,98 +174,86 @@ def count_file_lines(path, timeout_seconds=0):
     blank = 0
     comment = 0
     in_multiline_comment = False
-    in_docstring = False
-    docstring_delimiter = None
+    in_multiline_string = False
+    multiline_char = None
     is_py = path.suffix.lower() == '.py'
-    lang = EXTENSIONS.get(path.suffix.lower(), 'Unknown')
     
     i = 0
     while i < total:
-        line = lines[i]
-        line_stripped = line.strip()
+        raw_line = lines[i]
+        stripped = raw_line.strip()
         
-        if not line_stripped:
+        if not stripped:
             blank += 1
             i += 1
             continue
         
         if in_multiline_comment:
             comment += 1
-            if '*/' in line:
+            if '*/' in raw_line:
                 in_multiline_comment = False
             i += 1
             continue
         
-        if in_docstring:
-            comment += 1
-            if docstring_delimiter in line:
-                in_docstring = False
-                docstring_delimiter = None
-            i += 1
-            continue
-        
         j = 0
-        line_comment = False
+        length = len(raw_line)
         in_string = False
         string_char = None
-        length = len(line)
+        line_is_comment = False
         
         while j < length:
-            char = line[j]
-            next_char = line[j+1] if j+1 < length else ''
-            next_next_char = line[j+2] if j+2 < length else ''
+            char = raw_line[j]
+            next_char = raw_line[j+1] if j+1 < length else ''
+            next_next_char = raw_line[j+2] if j+2 < length else ''
             
-            if not in_string:
-                if char == '"' and (j == 0 or line[j-1] != '\\'):
+            if not in_string and not in_multiline_string:
+                if char == '"' and (j == 0 or raw_line[j-1] != '\\'):
                     if is_py and next_char == '"' and next_next_char == '"':
-                        in_docstring = True
-                        docstring_delimiter = '"""'
-                        comment += 1
+                        in_multiline_string = True
+                        multiline_char = '"""'
                         j += 3
-                        break
+                        continue
                     in_string = True
                     string_char = '"'
-                elif char == "'" and (j == 0 or line[j-1] != '\\'):
+                elif char == "'" and (j == 0 or raw_line[j-1] != '\\'):
                     if is_py and next_char == "'" and next_next_char == "'":
-                        in_docstring = True
-                        docstring_delimiter = "'''"
-                        comment += 1
+                        in_multiline_string = True
+                        multiline_char = "'''"
                         j += 3
-                        break
+                        continue
                     in_string = True
                     string_char = "'"
+                elif char == '#' and not in_string:
+                    line_is_comment = True
+                    break
                 elif char == '/' and next_char == '*':
                     in_multiline_comment = True
                     comment += 1
                     j += 2
-                    break
+                    continue
                 elif char == '/' and next_char == '/':
-                    line_comment = True
+                    line_is_comment = True
                     break
-                elif char == '#':
-                    line_comment = True
-                    break
-                elif char == '-' and next_char == '-':
-                    line_comment = True
-                    break
-                elif char == ';':
-                    line_comment = True
-                    break
-            else:
-                if char == string_char and (j == 0 or line[j-1] != '\\'):
+            elif in_string:
+                if char == string_char and (j == 0 or raw_line[j-1] != '\\'):
                     in_string = False
+            elif in_multiline_string:
+                if j + 2 < length and raw_line[j:j+3] == multiline_char:
+                    in_multiline_string = False
+                    j += 3
+                    continue
+            
             j += 1
         
-        if line_comment:
+        if in_multiline_comment:
             comment += 1
             i += 1
             continue
         
-        if not in_multiline_comment and not in_docstring:
-            if is_single_line_comment(line, lang):
-                comment += 1
-                i += 1
-                continue
+        if line_is_comment:
+            comment += 1
+            i += 1
+            continue
         
         i += 1
     
